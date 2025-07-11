@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}対象サイト一覧 - スクレイピングアプリ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-bullseye"></i> 対象サイト一覧
+        </h1>
+        
+        <div class="mb-3">
+            <a href="/admin/scraper/scrapingtarget/add/" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 新しい対象サイトを追加
+            </a>
+        </div>
+
+        {% if page_obj %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>サイト名</th>
+                                    <th>URL</th>
+                                    <th>CSSセレクタ</th>
+                                    <th>状態</th>
+                                    <th>作成日時</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for target in page_obj %}
+                                <tr>
+                                    <td>{{ target.name }}</td>
+                                    <td>
+                                        <a href="{{ target.url }}" target="_blank" class="text-decoration-none">
+                                            {{ target.url|truncatechars:50 }}
+                                        </a>
+                                    </td>
+                                    <td><code>{{ target.css_selector|truncatechars:30 }}</code></td>
+                                    <td>
+                                        {% if target.is_active %}
+                                            <span class="badge bg-success">有効</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">無効</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ target.created_at|date:"Y/m/d H:i" }}</td>
+                                    <td>
+                                        {% if target.is_active %}
+                                            <form method="post" action="{% url 'scraper:start_scraping' target.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="fas fa-play"></i> スクレイピング開始
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                        <a href="/admin/scraper/scrapingtarget/{{ target.id }}/change/" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i> 編集
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ページネーション -->
+                    {% if page_obj.has_other_pages %}
+                        <nav aria-label="ページネーション">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">前へ</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">次へ</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-bullseye fa-3x text-muted mb-3"></i>
+                    <h5>対象サイトが登録されていません</h5>
+                    <p class="text-muted">スクレイピングを開始するには、まず対象サイトを登録してください。</p>
+                    <a href="/admin/scraper/scrapingtarget/add/" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 最初の対象サイトを追加
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

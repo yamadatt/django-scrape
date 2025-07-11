@@ -1,0 +1,153 @@
+{% extends 'base.html' %}
+
+{% block title %}ジョブ一覧 - スクレイピングアプリ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tasks"></i> ジョブ一覧
+        </h1>
+
+        {% if page_obj %}
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>対象サイト</th>
+                                    <th>ステータス</th>
+                                    <th>開始日時</th>
+                                    <th>完了日時</th>
+                                    <th>取得件数</th>
+                                    <th>エラーメッセージ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in page_obj %}
+                                <tr>
+                                    <td><code>{{ job.id }}</code></td>
+                                    <td>
+                                        <span class="badge bg-info">{{ job.target.name }}</span>
+                                    </td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                            <span class="badge bg-success">
+                                                <i class="fas fa-check"></i> {{ job.get_status_display }}
+                                            </span>
+                                        {% elif job.status == 'running' %}
+                                            <span class="badge bg-warning">
+                                                <i class="fas fa-spinner fa-spin"></i> {{ job.get_status_display }}
+                                            </span>
+                                        {% elif job.status == 'failed' %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-times"></i> {{ job.get_status_display }}
+                                            </span>
+                                        {% elif job.status == 'pending' %}
+                                            <span class="badge bg-secondary">
+                                                <i class="fas fa-clock"></i> {{ job.get_status_display }}
+                                            </span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ job.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.started_at %}
+                                            {{ job.started_at|date:"Y/m/d H:i:s" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.completed_at %}
+                                            {{ job.completed_at|date:"Y/m/d H:i:s" }}
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.items_scraped > 0 %}
+                                            <span class="badge bg-success">{{ job.items_scraped }}</span>
+                                        {% else %}
+                                            <span class="text-muted">0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if job.error_message %}
+                                            <span class="text-danger" title="{{ job.error_message }}">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                {{ job.error_message|truncatechars:50 }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- ページネーション -->
+                    {% if page_obj.has_other_pages %}
+                        <nav aria-label="ページネーション">
+                            <ul class="pagination justify-content-center">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">前へ</a>
+                                    </li>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">次へ</a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+        {% else %}
+            <div class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                    <h5>ジョブ履歴がありません</h5>
+                    <p class="text-muted">まだスクレイピングジョブが実行されていません。</p>
+                    <a href="{% url 'scraper:dashboard' %}" class="btn btn-primary">
+                        <i class="fas fa-tachometer-alt"></i> ダッシュボードに戻る
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// 自動リフレッシュ（実行中のジョブがある場合）
+{% if page_obj %}
+    {% for job in page_obj %}
+        {% if job.status == 'running' %}
+            setTimeout(function() {
+                location.reload();
+            }, 5000); // 5秒後にリロード
+            break;
+        {% endif %}
+    {% endfor %}
+{% endif %}
+</script>
+{% endblock %} 

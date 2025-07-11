@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}ダッシュボード - スクレイピングアプリ{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">
+            <i class="fas fa-tachometer-alt"></i> ダッシュボード
+        </h1>
+    </div>
+</div>
+
+<!-- 統計カード -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-bullseye fa-2x me-3"></i>
+                    <div>
+                        <h5 class="card-title">対象サイト</h5>
+                        <h3 class="mb-0">{{ total_targets }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-database fa-2x me-3"></i>
+                    <div>
+                        <h5 class="card-title">取得データ</h5>
+                        <h3 class="mb-0">{{ total_scraped }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-clock fa-2x me-3"></i>
+                    <div>
+                        <h5 class="card-title">実行中ジョブ</h5>
+                        <h3 class="mb-0">{{ running_jobs }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-center">
+                    <form method="post" action="{% url 'scraper:start_all_scraping' %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-light">
+                            <i class="fas fa-play"></i> 全サイトスクレイピング開始
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 対象サイト一覧 -->
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bullseye"></i> 対象サイト
+                    <a href="{% url 'scraper:target_list' %}" class="btn btn-sm btn-outline-primary float-end">
+                        全て表示
+                    </a>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if targets %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>サイト名</th>
+                                    <th>URL</th>
+                                    <th>アクション</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for target in targets %}
+                                <tr>
+                                    <td>{{ target.name }}</td>
+                                    <td>
+                                        <a href="{{ target.url }}" target="_blank" class="text-decoration-none">
+                                            {{ target.url|truncatechars:30 }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        <form method="post" action="{% url 'scraper:start_scraping' target.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">対象サイトが登録されていません。</p>
+                    <a href="/admin/scraper/scrapingtarget/add/" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> 対象サイトを追加
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks"></i> 最新ジョブ
+                    <a href="{% url 'scraper:job_list' %}" class="btn btn-sm btn-outline-primary float-end">
+                        全て表示
+                    </a>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_jobs %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>対象</th>
+                                    <th>ステータス</th>
+                                    <th>開始時刻</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in recent_jobs %}
+                                <tr>
+                                    <td>{{ job.target.name }}</td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                            <span class="badge bg-success">{{ job.get_status_display }}</span>
+                                        {% elif job.status == 'running' %}
+                                            <span class="badge bg-warning">{{ job.get_status_display }}</span>
+                                        {% elif job.status == 'failed' %}
+                                            <span class="badge bg-danger">{{ job.get_status_display }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ job.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ job.started_at|date:"m/d H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">実行履歴がありません。</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 最新データ -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-database"></i> 最新スクレイピングデータ
+                    <a href="{% url 'scraper:data_list' %}" class="btn btn-sm btn-outline-primary float-end">
+                        全て表示
+                    </a>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_data %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>対象サイト</th>
+                                    <th>タイトル</th>
+                                    <th>URL</th>
+                                    <th>取得日時</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for data in recent_data %}
+                                <tr>
+                                    <td>{{ data.target.name }}</td>
+                                    <td>{{ data.title|truncatechars:50 }}</td>
+                                    <td>
+                                        {% if data.url %}
+                                            <a href="{{ data.url }}" target="_blank" class="text-decoration-none">
+                                                {{ data.url|truncatechars:40 }}
+                                            </a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ data.scraped_at|date:"m/d H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">スクレイピングデータがありません。</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

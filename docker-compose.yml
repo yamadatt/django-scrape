@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: scraping_db
+      POSTGRES_USER: scraping_user
+      POSTGRES_PASSWORD: scraping_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  web:
+    build: .
+    command: sh -c "python manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgresql://scraping_user:scraping_password@db:5432/scraping_db
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=*
+
+  celery:
+    build: .
+    command: celery -A scraping_project worker --loglevel=info
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DEBUG=1
+      - DATABASE_URL=postgresql://scraping_user:scraping_password@db:5432/scraping_db
+      - REDIS_URL=redis://redis:6379/0
+
+volumes:
+  postgres_data: 
